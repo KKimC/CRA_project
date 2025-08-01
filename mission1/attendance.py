@@ -1,146 +1,109 @@
-class Constants:
-    MAX_PLAYERS = 100
-    DAYS_IN_WEEK = 7
-    BONUS_THRESHOLD = 10
-    BONUS_SCORE = 10
-    WEEKEND_DAYS = [5, 6]
-    WEDNESDAY_INDEX = 2
+MAX_PLAYERS = 100
+DAYS_IN_WEEK = 7
+BONUS_THRESHOLD = 10
+BONUS_SCORE = 10
+WEEKEND_DAYS = [5, 6]
+WEDNESDAY_INDEX = 2
+GRADE_POLICY = {
+    "Gold": 50,
+    "Silver": 30,
+    "Normal": 0
+}
+GRADE_LABELS = {
+    "Gold": "GOLD",
+    "Silver": "SILVER",
+    "Normal": "NORMAL"
+}
+DAY_INFO = {
+    "monday": (0, 1),
+    "tuesday": (1, 1),
+    "wednesday": (2, 3),
+    "thursday": (3, 1),
+    "friday": (4, 1),
+    "saturday": (5, 2),
+    "sunday": (6, 2)
+}
 
-    GRADE_POLICY = {
-        "Gold": 50,
-        "Silver": 30,
-        "Normal": 0
-    }
-
-    GRADE_LABELS = {
-        "Gold": "GOLD",
-        "Silver": "SILVER",
-        "Normal": "NORMAL"
-    }
-
-    DAY_INFO = {
-        "monday": (0, 1),
-        "tuesday": (1, 1),
-        "wednesday": (2, 3),
-        "thursday": (3, 1),
-        "friday": (4, 1),
-        "saturday": (5, 2),
-        "sunday": (6, 2)
-    }
+player_name_to_index = {}
+player_count = 0
+player_names = [''] * MAX_PLAYERS
+week_counts = [[0] * DAYS_IN_WEEK for _ in range(MAX_PLAYERS)]
+points = [0] * MAX_PLAYERS
+grades = [''] * MAX_PLAYERS
 
 
-class Player:
-    def __init__(self, name):
-        self.name = name
-        self.week_counts = [0] * Constants.DAYS_IN_WEEK
-        self.points = 0
-        self.grade = "Normal"
+def get_day_index_and_points(weekday):
+    return DAY_INFO.get(weekday.lower(), (0, 0))
 
-    def attend(self, day_index, base_point):
-        self.week_counts[day_index] += 1
-        self.points += base_point
+def set_player_count():
+    global player_count
+    player_count = len(player_name_to_index)
 
-    def has_wednesday_attendance(self):
-        return self.week_counts[Constants.WEDNESDAY_INDEX] > 0
+def process_attendance(player_name, weekday):
+    if player_name not in player_name_to_index:
+        new_player_index = len(player_name_to_index) + 1
+        player_name_to_index[player_name] = new_player_index
+        player_names[new_player_index] = player_name
 
-    def has_weekend_attendance(self):
-        for day in Constants.WEEKEND_DAYS:
-            if self.week_counts[day] > 0:
-                return True
+    player_index = player_name_to_index[player_name]
+    day_index, base_point = get_day_index_and_points(weekday)
+    week_counts[player_index][day_index] += 1
+    points[player_index] += base_point
+
+def process_bonus_points():
+    for player_index in range(1, player_count + 1):
+        if week_counts[player_index][WEDNESDAY_INDEX] >= BONUS_THRESHOLD:
+            points[player_index] += BONUS_SCORE
+        if sum(week_counts[player_index][d] for d in WEEKEND_DAYS) >= BONUS_THRESHOLD:
+            points[player_index] += BONUS_SCORE
+
+def process_assign_grades():
+    for player_index in range(1, player_count + 1):
+        for grade_name, threshold in GRADE_POLICY.items():
+            if points[player_index] >= threshold:
+                grades[player_index] = grade_name
+                break
+
+def print_results():
+    for player_index in range(1, player_count + 1):
+        grade_str = GRADE_LABELS.get(grades[player_index], grades[player_index].upper())
+        print(f"NAME : {player_names[player_index]}, POINT : {points[player_index]}, GRADE : {grade_str}")
+
+def check_removed_player(player_index):
+    is_normal = grades[player_index] == "Normal"
+    has_wednesday = week_counts[player_index][WEDNESDAY_INDEX] > 0
+    has_weekend = sum(week_counts[player_index][d] for d in WEEKEND_DAYS) > 0
+    return is_normal and not has_wednesday and not has_weekend
+
+def print_removed_player():
+    print("\nRemoved player")
+    print("==============")
+    for player_index in range(1, player_count + 1):
+        if check_removed_player(player_index):
+            print(player_names[player_index])
+
+def load_attendance_file(filename):
+    try:
+        with open(filename, encoding='utf-8') as f:
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) == 2:
+                    process_attendance(parts[0], parts[1])
+    except FileNotFoundError:
+        print("파일을 찾을 수 없습니다.")
         return False
+    return True
 
-    def sum_weekend(self):
-        total = 0
-        for day in Constants.WEEKEND_DAYS:
-            total += self.week_counts[day]
-        return total
+def main():
+    if load_attendance_file("attendance_weekday_500.txt"):
+        set_player_count()
 
-    def is_removed(self):
-        return (
-            self.grade == "Normal"
-            and not self.has_wednesday_attendance()
-            and not self.has_weekend_attendance()
-        )
+        process_bonus_points()
+        process_assign_grades()
 
-
-class PlayerDatabase:
-    def __init__(self):
-        self.players = {}
-        self.player_order = []
-
-    def get_or_create_player(self, name):
-        if name not in self.players:
-            self.players[name] = Player(name)
-            self.player_order.append(name)
-        return self.players[name]
-
-    def process_attendance(self, name, weekday):
-        player = self.get_or_create_player(name)
-        day_index, base_point = Constants.DAY_INFO.get(weekday.lower(), (0, 0))
-        player.attend(day_index, base_point)
-
-    def get_all_players(self):
-        return [self.players[name] for name in self.player_order]
-
-
-class AttendanceAnalyzer:
-    def apply_bonus_points(self, players):
-        for player in players:
-            if player.week_counts[Constants.WEDNESDAY_INDEX] >= Constants.BONUS_THRESHOLD:
-                player.points += Constants.BONUS_SCORE
-            if player.sum_weekend() >= Constants.BONUS_THRESHOLD:
-                player.points += Constants.BONUS_SCORE
-
-    def assign_grades(self, players):
-        for player in players:
-            for grade_name, threshold in Constants.GRADE_POLICY.items():
-                if player.points >= threshold:
-                    player.grade = grade_name
-                    break
-
-
-class AttendancePrinter:
-    def print_results(self, players):
-        for player in players:
-            grade_str = Constants.GRADE_LABELS.get(player.grade, player.grade.upper())
-            print(f"NAME : {player.name}, POINT : {player.points}, GRADE : {grade_str}")
-
-    def print_removed_players(self, players):
-        print("\nRemoved player")
-        print("==============")
-        for player in players:
-            if player.is_removed():
-                print(player.name)
-
-
-class Attendance:
-    def __init__(self):
-        self.database = PlayerDatabase()
-        self.analyzer = AttendanceAnalyzer()
-        self.printer = AttendancePrinter()
-
-    def load_file(self, filename):
-        try:
-            with open(filename, encoding="utf-8") as f:
-                for line in f:
-                    parts = line.strip().split()
-                    if len(parts) == 2:
-                        self.database.process_attendance(parts[0], parts[1])
-        except FileNotFoundError:
-            print("파일을 찾을 수 없습니다.")
-            return False
-        return True
-
-    def run(self, filename="attendance_weekday_500.txt"):
-        if not self.load_file(filename):
-            return
-        players = self.database.get_all_players()
-        self.analyzer.apply_bonus_points(players)
-        self.analyzer.assign_grades(players)
-        self.printer.print_results(players)
-        self.printer.print_removed_players(players)
+        print_results()
+        print_removed_player()
 
 
 if __name__ == "__main__":
-    attendance = Attendance()
-    attendance.run()
+    main()
