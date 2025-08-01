@@ -8,6 +8,8 @@
 | D4 | O |
 | D5 | O |
 
+ABC Class, run 관련 코드제외 커버리지 100% 달성하였습니다.
+
 <img width="737" height="515" alt="Image" src="https://github.com/user-attachments/assets/9ec159d3-c8de-474d-a04d-9361614ded21" />
 <img width="710" height="129" alt="Image" src="https://github.com/user-attachments/assets/b60c9292-94b3-4813-b01b-059efef61d41" />
 <img width="446" height="251" alt="Image" src="https://github.com/user-attachments/assets/664ed575-2193-4a21-a22e-3167c7129625" />
