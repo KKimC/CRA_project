@@ -95,14 +95,14 @@ class GradeBase(ABC):
     def assign(self, player: Player):
         pass
 
-class DefaultBonusBase(BonusBase):
+class DefaultBonus(BonusBase):
     def apply(self, player: Player):
         if player.week_counts[Constants.WEDNESDAY_INDEX] >= Constants.BONUS_THRESHOLD:
             player.points += Constants.BONUS_SCORE
         if player.sum_weekend() >= Constants.BONUS_THRESHOLD:
             player.points += Constants.BONUS_SCORE
 
-class DefaultGradeBase(GradeBase):
+class DefaultGrade(GradeBase):
     def assign(self, player: Player):
         for grade_name, threshold in Constants.GRADE_POLICY.items():
             if player.points >= threshold:
@@ -111,8 +111,8 @@ class DefaultGradeBase(GradeBase):
 
 class AttendanceAnalyzer:
     def __init__(self, bonus_Base=None, grade_Base=None):
-        self.bonus_Base = bonus_Base or DefaultBonusBase()
-        self.grade_Base = grade_Base or DefaultGradeBase()
+        self.bonus_Base = bonus_Base or DefaultBonus()
+        self.grade_Base = grade_Base or DefaultGrade()
 
     def apply_bonus_points(self, players):
         for player in players:
