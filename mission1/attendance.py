@@ -35,13 +35,15 @@ grades = [''] * MAX_PLAYERS
 def get_day_index_and_points(weekday):
     return DAY_INFO.get(weekday.lower(), (0, 0))
 
-def process_attendance(player_name, weekday):
+def set_player_count():
     global player_count
+    player_count = len(player_name_to_index)
 
+def process_attendance(player_name, weekday):
     if player_name not in player_name_to_index:
-        player_count += 1
-        player_name_to_index[player_name] = player_count
-        player_names[player_count] = player_name
+        new_player_index = len(player_name_to_index) + 1
+        player_name_to_index[player_name] = new_player_index
+        player_names[new_player_index] = player_name
 
     player_index = player_name_to_index[player_name]
     day_index, base_point = get_day_index_and_points(weekday)
@@ -94,8 +96,11 @@ def load_attendance_file(filename):
 
 def main():
     if load_attendance_file("attendance_weekday_500.txt"):
+        set_player_count()
+        
         process_bonus_points()
         process_assign_grades()
+        
         print_results()
         print_removed_player()
 
